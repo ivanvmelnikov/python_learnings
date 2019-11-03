@@ -1,0 +1,36 @@
+
+"b2c_product_bank"
+"b2c_interest_product"
+    "productBank_id"->"b2c_product_bank.id"
+"b2c_product_tranche"
+    "interestProduct_id"->"b2c_interest_product.id"
+"b2c_interest_rate"
+    "product_id"->"b2c_product_tranche.id"
+"b2c_product_bank_interest_account"
+    "serviceBankTransitAccount_id"->"b2c_service_bank_transit_account.id"
+    "productBank_id"->"b2c_product_bank.id"
+    "product_id"->"b2c_product_tranche.id"
+    "currency"->"b2c_currency.currency_code"
+
+two_database from, to - (comonea_b2c_prod, comonea_b2c)
+
+https://pythontic.com/pandas/serialization/mysql
+b2c_product_tranche <- select all pt from "from" which we don't have in "to"
+b2c_product_bank <- manually select all product banks from "from" for which we have tranches in diff
+b2c_interest_product <- select all ip from "from" for which we have tranches in diff
+b2c_interest_rate <- select connected to b2c_product_tranche
+
+for pb in b2c_product_bank:
+
+    insertPB(pb)
+    #save new id to pb obj and save old id to old_id field
+    for ip in b2c_interest_product if ip.productBank_id == old_pb_id(pb):#get old it from old_id field
+        insertIP(ip, pb)
+        for pt in b2c_product_tranche if pt.interestProduct_id == old_interest_product_id(ip):
+            insertPT(pt, ip)
+            for ir in b2c_interest_rate if ir.product_id == old_product_id(pt):
+                insertIR(ir, pt)
+            for pbia in b2c_product_bank_interest_account if pbia.productBank_id == old_pb_id(pb) and pbia.product_id == old_product_id(pt):
+                insertPBIA()
+
+for pt in all product trunches

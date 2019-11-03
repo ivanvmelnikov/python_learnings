@@ -31,7 +31,6 @@ print(merge)
 2   A2  B2   C2   A0   C0       both
 '''
 
-
 '''
 return rows where column value doesn't exist in another dataframe
 select * from df1 where df1.cB not int (select cB from df2)
@@ -43,3 +42,52 @@ print(df1[~df1['cB'].isin(df2['cB'])])
 1  A1  B1  C1
 
 '''
+# remove column
+print(df1.drop(columns=['cA']))
+'''
+   cB  cC
+0  B0  C0
+1  B1  C1
+2  B2  C2
+'''
+
+# same
+print(df1.drop(['cA'], axis=1))
+
+# remove rows by index
+print(df1.drop([0, 1]))
+'''
+   cA  cB  cC
+2  A2  B2  C2
+'''
+
+# set value for column
+df1c = df1.copy()
+df1c['cA'] = 777
+print(df1c)
+'''
+    cA  cB  cC
+0  777  B0  C0
+1  777  B1  C1
+2  777  B2  C2
+'''
+
+# replace by regex
+# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.replace.html
+
+
+
+print('get row by condition')
+# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.loc.html
+tmp1 = df1.loc[df1['cA'] == 'A2']
+print(tmp1)
+
+print('same get row by condition?')
+tmp2 = df1[df1['cA'] == 'A2']
+print(tmp2)
+
+print('get row  column value by condition')
+tmp3 = df1.loc[df1['cA'] == 'A2']#DataFrame
+tmp4 = tmp3.iloc[0]#Series
+b_ = tmp4['cB']#str
+print(b_)
