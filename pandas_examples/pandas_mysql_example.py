@@ -23,6 +23,7 @@ def create_mysql_engine(db_name, host, password, port, user_name):
 
 def insert_mysql_df(db_name, table_name, df, user_name='root', password='123456', host='127.0.0.1', port='3306',
                     commit=False):
+    print('inserting into %s amount of row: %s' % (table_name, df.shape[0]))
     # dialect[+driver]://user:password@host/dbname[?key=value..]``
     sqlEngine = create_mysql_engine(db_name, host, password, port, user_name)
     dbConnection = sqlEngine.connect()
@@ -36,5 +37,6 @@ def insert_mysql_df(db_name, table_name, df, user_name='root', password='123456'
             tx.rollback()
     except:
         tx.rollback()
+        raise
     finally:
         dbConnection.close()

@@ -76,7 +76,6 @@ print(df1c)
 # https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.replace.html
 
 
-
 print('get row by condition')
 # https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.loc.html
 tmp1 = df1.loc[df1['cA'] == 'A2']
@@ -87,7 +86,19 @@ tmp2 = df1[df1['cA'] == 'A2']
 print(tmp2)
 
 print('get row  column value by condition')
-tmp3 = df1.loc[df1['cA'] == 'A2']#DataFrame
-tmp4 = tmp3.iloc[0]#Series
-b_ = tmp4['cB']#str
+tmp3 = df1.loc[df1['cA'] == 'A2']  # DataFrame
+tmp4 = tmp3.iloc[0]  # Series
+b_ = tmp4['cB']  # str
 print(b_)
+
+# combine column
+fd1_copy = df1.copy()
+fd1_copy['combined'] = fd1_copy['cA'].astype(str) + '_' + fd1_copy['cB']
+print(fd1_copy)
+
+'''
+   cA  cB  cC combined
+0  A0  B0  C0    A0_B0
+1  A1  B1  C1    A1_B1
+2  A2  B2  C2    A2_B2
+'''

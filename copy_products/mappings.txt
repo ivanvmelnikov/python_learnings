@@ -19,6 +19,7 @@ b2c_product_tranche <- select all pt from "from" which we don't have in "to"
 b2c_product_bank <- manually select all product banks from "from" for which we have tranches in diff
 b2c_interest_product <- select all ip from "from" for which we have tranches in diff
 b2c_interest_rate <- select connected to b2c_product_tranche
+b2c_service_bank_product_mapping <-
 
 for pb in b2c_product_bank:
 
@@ -34,3 +35,32 @@ for pb in b2c_product_bank:
                 insertPBIA()
 
 for pt in all product trunches
+
+
+product mappings m prod -> int where m not in int.
+
+p is the same when it is for the same product_tranche.
+
+diff_of_mappings = p_t_from_f[m.product_id].product_identifier not in set_of(p_t_from_t[id])
+
+replace foreign keys by secondary keys.
+
+b2c_product_change_investment_mapping
+sourceProductBankInterestAccount_id -> b2c_product_bank_interest_account
+targetProductBankInterestAccount_id
+
+convert all pairs to ids for target system. Find diff.
+
+add column for pairs
+
+sourceProductBankInterestAccount_id -> b2c_product_bank_interest_account -> product_tranche
+
+convert mapping to pairs (product_tranche_from_f, product_tranche_to_f) p1
+
+convert p1 to (b2c_product_bank_interest_account_t, b2c_product_bank_interest_account_t) p2
+
+convert p2 to (b2c_product_bank_interest_account_t, b2c_product_bank_interest_account_t)
+
+
+
+

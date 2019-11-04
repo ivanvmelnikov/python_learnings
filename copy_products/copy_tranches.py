@@ -1,6 +1,16 @@
 import importlib
 import datetime
 
+T_F_PAIR = 'f_t_pair'
+
+TARGET_INTEREST_ACCOUNT_ID = 'targetProductBankInterestAccount_id'
+
+SOURCE_INTEREST_ACCOUNT_ID = 'sourceProductBankInterestAccount_id'
+
+PRODUCT_TRANCHE_T = 'product_tranche_t'
+
+PRODUCT_TRANCHE_F = 'product_tranche_f'
+
 PRODUCT_ID = 'product_id'
 
 B_2_C_PRODUCT_TRANCHE = 'b2c_product_tranche'
@@ -23,7 +33,10 @@ PRODUCT_IDENTIFIER = 'productIdentifier'
 BIC = 'bic'
 
 PASSWORD = 'mysqlroot'
+PASSWORD_TO = 'mysqlroot'
 PORT = '3316'
+PORT_TO = '3316'
+USER_TO = ''
 from_db_name = 'comonea_b2c_prod'
 to_db_name = 'comonea_b2c'
 
@@ -114,9 +127,11 @@ update_foreign_key(pdia_f_diff, PRODUCT_BANK_ID, BIC, pb_f, new_pb_t)
 update_foreign_key(pdia_f_diff, PRODUCT_ID, PRODUCT_IDENTIFIER, pt_f, new_pt_t)
 set_current_creation_date(pdia_f_diff)
 
-print('inserting %s b2c_product_bank_interest_account'% pdia_f_diff.shape[0])
+print('inserting %s b2c_product_bank_interest_account' % pdia_f_diff.shape[0])
 ms.insert_mysql_df(to_db_name, "b2c_product_bank_interest_account", remove_id_column(pdia_f_diff),
                    password=PASSWORD, port=PORT, commit=True)
+
+new_pdia_t = ms.load_mysql_df(to_db_name, 'b2c_product_bank_interest_account', password=PASSWORD, port=PORT)
 
 ir_f = ms.load_mysql_df(from_db_name, 'b2c_interest_rate', password=PASSWORD, port=PORT)
 
@@ -128,4 +143,63 @@ update_foreign_key(ir_f_diff, PRODUCT_ID, PRODUCT_IDENTIFIER, pt_f, new_pt_t)
 set_current_creation_date(ir_f_diff)
 
 ms.insert_mysql_df(to_db_name, 'b2c_interest_rate', remove_id_column(ir_f_diff),
+                   password=PASSWORD, port=PORT, commit=True)
+
+pbm_f = ms.load_mysql_df(from_db_name, 'b2c_service_bank_product_mapping', password=PASSWORD, port=PORT)
+
+pbm_f_diff = pbm_f[pbm_f[PRODUCT_ID].isin(tranches_not_in_to[ID])].copy()
+
+pbm_f_diff['serviceBank_id'] = 12
+pbm_f_diff['transitAccount_id'] = 7
+update_foreign_key(pbm_f_diff, PRODUCT_ID, PRODUCT_IDENTIFIER, pt_f, new_pt_t)
+update_foreign_key(pbm_f_diff, 'interestAccount_id', 'uuid', pdia_f, new_pdia_t)
+update_foreign_key(pbm_f_diff, 'transitAccount_id', 'uuid', pdia_f, new_pdia_t)
+
+set_current_creation_date(pbm_f_diff)
+ms.insert_mysql_df(to_db_name, 'b2c_service_bank_product_mapping', remove_id_column(pbm_f_diff),
+                   password=PASSWORD, port=PORT, commit=True)
+
+im_f = ms.load_mysql_df(from_db_name, 'b2c_product_change_investment_mapping', password=PASSWORD, port=PORT)
+im_t = ms.load_mysql_df(to_db_name, 'b2c_product_change_investment_mapping', password=PASSWORD, port=PORT)
+
+im_f_copy = im_f.copy()
+im_t_copy = im_t.copy()
+
+
+def add_tranche_id(im_copy, pbia_foreign_key_c, pdia, pt, new_col):
+    for index, r in im_copy.iterrows():
+        product_tr_id = pdia[pdia[ID] == r[pbia_foreign_key_c]].iloc[0][PRODUCT_ID]
+        product_tr_identifier = pt[pt[ID] == product_tr_id].iloc[0][PRODUCT_IDENTIFIER]
+        im_copy.loc[index, new_col] = product_tr_identifier
+
+
+add_tranche_id(im_t_copy, SOURCE_INTEREST_ACCOUNT_ID, pdia_t, pt_t, PRODUCT_TRANCHE_F)
+add_tranche_id(im_t_copy, TARGET_INTEREST_ACCOUNT_ID, pdia_t, pt_t, PRODUCT_TRANCHE_T)
+im_t_copy[T_F_PAIR] = im_t_copy[PRODUCT_TRANCHE_F].astype(str) + '_' + im_t_copy[PRODUCT_TRANCHE_T]
+
+add_tranche_id(im_f_copy, SOURCE_INTEREST_ACCOUNT_ID, pdia_f, pt_f, PRODUCT_TRANCHE_F)
+add_tranche_id(im_f_copy, TARGET_INTEREST_ACCOUNT_ID, pdia_f, pt_f, PRODUCT_TRANCHE_T)
+im_f_copy[T_F_PAIR] = im_f_copy[PRODUCT_TRANCHE_F].astype(str) + '_' + im_f_copy[PRODUCT_TRANCHE_T]
+
+im_f_diff = im_f_copy[~im_f_copy[T_F_PAIR].isin(im_t_copy[T_F_PAIR])].copy()
+
+
+def replace_pbia_with_new_id(im, tmp_foreign_key_name, foreign_key_name):
+    for index, r in im.iterrows():
+        tranche_id = pt_t[pt_t[PRODUCT_IDENTIFIER] == r[tmp_foreign_key_name]].iloc[0][ID]
+        pbia_id = pdia_t[pdia_t[PRODUCT_ID] == tranche_id].iloc[0][ID]
+        im.loc[index, foreign_key_name] = pbia_id
+
+
+replace_pbia_with_new_id(im_f_diff, PRODUCT_TRANCHE_F, SOURCE_INTEREST_ACCOUNT_ID)
+replace_pbia_with_new_id(im_f_diff, PRODUCT_TRANCHE_T, TARGET_INTEREST_ACCOUNT_ID)
+
+set_current_creation_date(im_f_diff)
+
+im_to_insert = remove_id_column(im_f_diff).drop(columns=[PRODUCT_TRANCHE_F]).drop(columns=[PRODUCT_TRANCHE_T]).drop(
+    columns=[T_F_PAIR])
+
+print('Diff size' + str(im_f_diff.shape[0]))
+
+ms.insert_mysql_df(to_db_name, 'b2c_product_change_investment_mapping', im_to_insert,
                    password=PASSWORD, port=PORT, commit=True)
