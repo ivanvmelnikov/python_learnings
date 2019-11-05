@@ -37,7 +37,9 @@ PASSWORD_TO = 'mysqlroot'
 PORT = '3316'
 PORT_TO = '3316'
 USER_NAME_TO = 'root'
+HOST_TO = 'asasdasd'
 from_db_name = 'comonea_b2c_prod'
+# to_db_name = 'comonea_b2c'
 to_db_name = 'comonea_b2c'
 
 
@@ -62,23 +64,23 @@ def update_foreign_key(df, foreign_key_c_name, ref_table_secondary_key_name, ref
 
 
 pt_f = ms.load_mysql_df(from_db_name, B_2_C_PRODUCT_TRANCHE, password=PASSWORD, port=PORT)
-pt_t = ms.load_mysql_df(to_db_name, B_2_C_PRODUCT_TRANCHE, password=PASSWORD_TO, port=PORT_TO, user_name=USER_NAME_TO)
+pt_t = ms.load_mysql_df(to_db_name, B_2_C_PRODUCT_TRANCHE, password=PASSWORD_TO, port=PORT_TO, user_name=USER_NAME_TO, host=HOST_TO)
 
 tranches_not_in_to = pt_f[~pt_f[PRODUCT_IDENTIFIER].isin(pt_t[PRODUCT_IDENTIFIER])].copy()
 
 pb_f = ms.load_mysql_df(from_db_name, B_2_C_PRODUCT_BANK, password=PASSWORD, port=PORT)
-pb_t = ms.load_mysql_df(to_db_name, B_2_C_PRODUCT_BANK, password=PASSWORD_TO, port=PORT_TO, user_name=USER_NAME_TO)
+pb_t = ms.load_mysql_df(to_db_name, B_2_C_PRODUCT_BANK, password=PASSWORD_TO, port=PORT_TO, user_name=USER_NAME_TO, host=HOST_TO)
 pbs_not_in_to = pb_f[~pb_f[BIC].isin(pb_t[BIC])]
 
 set_current_creation_date(pbs_not_in_to)
 # insert product missing product banks
 ms.insert_mysql_df(to_db_name, B_2_C_PRODUCT_BANK, remove_id_column(pbs_not_in_to),
-                   password=PASSWORD_TO, port=PORT_TO, user_name=USER_NAME_TO, commit=True)
+                   password=PASSWORD_TO, port=PORT_TO, user_name=USER_NAME_TO, commit=True, host=HOST_TO)
 
-new_pb_t = ms.load_mysql_df(to_db_name, B_2_C_PRODUCT_BANK, password=PASSWORD_TO, port=PORT_TO, user_name=USER_NAME_TO)
+new_pb_t = ms.load_mysql_df(to_db_name, B_2_C_PRODUCT_BANK, password=PASSWORD_TO, port=PORT_TO, user_name=USER_NAME_TO, host=HOST_TO)
 
 ip_f = ms.load_mysql_df(from_db_name, B_2_C_INTEREST_PRODUCT, password=PASSWORD, port=PORT)
-ip_t = ms.load_mysql_df(to_db_name, B_2_C_INTEREST_PRODUCT, password=PASSWORD_TO, port=PORT_TO, user_name=USER_NAME_TO)
+ip_t = ms.load_mysql_df(to_db_name, B_2_C_INTEREST_PRODUCT, password=PASSWORD_TO, port=PORT_TO, user_name=USER_NAME_TO, host=HOST_TO)
 ips_not_in_to = ip_f[~ip_f[PRODUCT_IDENTIFIER].isin(ip_t[PRODUCT_IDENTIFIER])].copy()
 
 print("pb_id before ")
@@ -92,10 +94,10 @@ print(ips_not_in_to.head(1)[PRODUCT_BANK_ID])
 set_current_creation_date(ips_not_in_to)
 
 ms.insert_mysql_df(to_db_name, B_2_C_INTEREST_PRODUCT, remove_id_column(ips_not_in_to),
-                   password=PASSWORD_TO, port=PORT_TO, user_name=USER_NAME_TO, commit=True)
+                   password=PASSWORD_TO, port=PORT_TO, user_name=USER_NAME_TO, commit=True, host=HOST_TO)
 
 new_ip_t = ms.load_mysql_df(to_db_name, B_2_C_INTEREST_PRODUCT, password=PASSWORD_TO, port=PORT_TO,
-                            user_name=USER_NAME_TO)
+                            user_name=USER_NAME_TO, host=HOST_TO)
 
 print("ip_id before ")
 print(tranches_not_in_to.head(1)[INTEREST_PRODUCT_ID])
@@ -109,13 +111,13 @@ print(tranches_not_in_to.head(1)[INTEREST_PRODUCT_ID])
 set_current_creation_date(tranches_not_in_to)
 
 ms.insert_mysql_df(to_db_name, B_2_C_PRODUCT_TRANCHE, remove_id_column(tranches_not_in_to),
-                   password=PASSWORD_TO, port=PORT_TO, user_name=USER_NAME_TO, commit=True)
+                   password=PASSWORD_TO, port=PORT_TO, user_name=USER_NAME_TO, commit=True, host=HOST_TO)
 new_pt_t = ms.load_mysql_df(to_db_name, B_2_C_PRODUCT_TRANCHE, password=PASSWORD_TO, port=PORT_TO,
-                            user_name=USER_NAME_TO)
+                            user_name=USER_NAME_TO, host=HOST_TO)
 
 pdia_f = ms.load_mysql_df(from_db_name, 'b2c_product_bank_interest_account', password=PASSWORD, port=PORT)
 pdia_t = ms.load_mysql_df(to_db_name, 'b2c_product_bank_interest_account', password=PASSWORD_TO, port=PORT_TO,
-                          user_name=USER_NAME_TO)
+                          user_name=USER_NAME_TO, host=HOST_TO)
 
 pdia_f_diff = pdia_f[pdia_f[PRODUCT_ID].isin(tranches_not_in_to[ID])].copy()
 '''
@@ -125,17 +127,17 @@ pdia_f_diff = pdia_f[pdia_f[PRODUCT_ID].isin(tranches_not_in_to[ID])].copy()
 "product_id"->"b2c_product_tranche.id"
 "currency"->"b2c_currency.currency_code"
 '''
-pdia_f_diff['serviceBankTransitAccount_id'] = 7
+pdia_f_diff['serviceBankTransitAccount_id'] = 5#7
 update_foreign_key(pdia_f_diff, PRODUCT_BANK_ID, BIC, pb_f, new_pb_t)
 update_foreign_key(pdia_f_diff, PRODUCT_ID, PRODUCT_IDENTIFIER, pt_f, new_pt_t)
 set_current_creation_date(pdia_f_diff)
 
 print('inserting %s b2c_product_bank_interest_account' % pdia_f_diff.shape[0])
 ms.insert_mysql_df(to_db_name, "b2c_product_bank_interest_account", remove_id_column(pdia_f_diff),
-                   password=PASSWORD_TO, port=PORT_TO, user_name=USER_NAME_TO, commit=True)
+                   password=PASSWORD_TO, port=PORT_TO, user_name=USER_NAME_TO, commit=True, host=HOST_TO)
 
 new_pdia_t = ms.load_mysql_df(to_db_name, 'b2c_product_bank_interest_account', password=PASSWORD_TO, port=PORT_TO,
-                              user_name=USER_NAME_TO)
+                              user_name=USER_NAME_TO, host=HOST_TO)
 
 ir_f = ms.load_mysql_df(from_db_name, 'b2c_interest_rate', password=PASSWORD, port=PORT)
 
@@ -147,25 +149,24 @@ update_foreign_key(ir_f_diff, PRODUCT_ID, PRODUCT_IDENTIFIER, pt_f, new_pt_t)
 set_current_creation_date(ir_f_diff)
 
 ms.insert_mysql_df(to_db_name, 'b2c_interest_rate', remove_id_column(ir_f_diff),
-                   password=PASSWORD_TO, port=PORT_TO, user_name=USER_NAME_TO, commit=True)
+                   password=PASSWORD_TO, port=PORT_TO, user_name=USER_NAME_TO, commit=True, host=HOST_TO)
 
 pbm_f = ms.load_mysql_df(from_db_name, 'b2c_service_bank_product_mapping', password=PASSWORD, port=PORT)
 
 pbm_f_diff = pbm_f[pbm_f[PRODUCT_ID].isin(tranches_not_in_to[ID])].copy()
 
-pbm_f_diff['serviceBank_id'] = 12
-pbm_f_diff['transitAccount_id'] = 7
+pbm_f_diff['serviceBank_id'] = 9#12
+pbm_f_diff['transitAccount_id'] = 5#7
 update_foreign_key(pbm_f_diff, PRODUCT_ID, PRODUCT_IDENTIFIER, pt_f, new_pt_t)
 update_foreign_key(pbm_f_diff, 'interestAccount_id', 'uuid', pdia_f, new_pdia_t)
-update_foreign_key(pbm_f_diff, 'transitAccount_id', 'uuid', pdia_f, new_pdia_t)
 
 set_current_creation_date(pbm_f_diff)
 ms.insert_mysql_df(to_db_name, 'b2c_service_bank_product_mapping', remove_id_column(pbm_f_diff),
-                   password=PASSWORD_TO, port=PORT_TO, user_name=USER_NAME_TO, commit=True)
+                   password=PASSWORD_TO, port=PORT_TO, user_name=USER_NAME_TO, commit=True, host=HOST_TO)
 
 im_f = ms.load_mysql_df(from_db_name, 'b2c_product_change_investment_mapping', password=PASSWORD, port=PORT)
 im_t = ms.load_mysql_df(to_db_name, 'b2c_product_change_investment_mapping', password=PASSWORD_TO, port=PORT_TO,
-                        user_name=USER_NAME_TO)
+                        user_name=USER_NAME_TO, host=HOST_TO)
 
 im_f_copy = im_f.copy()
 im_t_copy = im_t.copy()
@@ -207,4 +208,4 @@ im_to_insert = remove_id_column(im_f_diff).drop(columns=[PRODUCT_TRANCHE_F]).dro
 print('Diff size' + str(im_f_diff.shape[0]))
 
 ms.insert_mysql_df(to_db_name, 'b2c_product_change_investment_mapping', im_to_insert,
-                   password=PASSWORD_TO, port=PORT_TO, user_name=USER_NAME_TO, commit=True)
+                   password=PASSWORD_TO, port=PORT_TO, user_name=USER_NAME_TO, commit=True, host=HOST_TO)
